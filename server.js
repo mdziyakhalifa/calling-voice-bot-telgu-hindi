@@ -4,77 +4,45 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-// Attempt to load AI library safely
+// Load AI library
 let GoogleGenerativeAI;
 try {
     GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
 } catch (e) {
-    console.error("Critical: Could not load @google/generative-ai package.");
+    console.error("AI Library Load Error");
 }
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
-
-// Serve static files from the ROOT directory
 app.use(express.static(__dirname));
 
-// Root route
 app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send("Error: index.html not found. Check GitHub files.");
-    }
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Initialize AI globally
 let chatSession = null;
-
-// Health check
 app.get('/status', (req, res) => {
-    res.json({ 
-        status: "Server is running", 
-        ai_ready: !!chatSession,
-        port: PORT
-    });
+    res.json({ ai_ready: !!chatSession });
 });
 
-// AI Initialization Logic
-const apiKey = process.env.GEMINI_API_KEY;
-if (apiKey && GoogleGenerativeAI) {
+// AI Init
+if (process.env.GEMINI_API_KEY && GoogleGenerativeAI) {
     try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 sentences in a Hindi/Telugu mix."
-        });
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         chatSession = model.startChat({ history: [] });
-        console.log("AI initialized successfully.");
-    } catch (err) {
-        console.error("AI Initialization Failed:", err.message);
-    }
+    } catch (err) { console.error("AI Init Error"); }
 }
 
 app.post('/api/chat', async (req, res) => {
-    if (!chatSession) {
-        return res.status(500).json({ error: "AI is not ready. Check API key on Render." });
-    }
+    if (!chatSession) return res.status(500).json({ error: "AI not ready" });
     try {
-        const result = await chatSession.sendMessage(req.body.message || "hello");
-        const reply = result.response.text().trim();
-        res.json({ reply: reply });
-    } catch (error) {
-        console.error("Chat API Error:", error);
-        res.status(500).json({ error: "AI failed to respond." });
-    }
+        const result = await chatSession.sendMessage(req.body.message || "hi");
+        res.json({ reply: result.response.text() });
+    } catch (error) { res.status(500).json({ error: "AI Error" }); }
 });
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is live on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Live on ${PORT}`));
