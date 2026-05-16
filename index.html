@@ -23,9 +23,9 @@
                 </div>
             </div>
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active" id="nav-conversation"><i class="fa-solid fa-message"></i> Conversation</a>
-                <a href="#" class="nav-item" id="nav-history"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
-                <a href="#" class="nav-item" id="nav-settings"><i class="fa-solid fa-gear"></i> Settings</a>
+                <a href="#" class="nav-item active"><i class="fa-solid fa-message"></i> Conversation</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+                <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
             </nav>
             <div class="sidebar-footer">
                 <div class="status-badge">
@@ -38,69 +38,37 @@
         <main class="main-content">
             <header class="chat-header">
                 <div class="header-info">
-                    <h2 id="header-title">Virtual Assistant</h2>
-                    <p id="header-subtitle">Hindi & Telugu Supported</p>
+                    <h2>Virtual Assistant</h2>
+                    <p>Hindi & Telugu Supported</p>
                 </div>
                 <div class="header-actions">
-                    <button class="action-btn" id="mobile-menu-btn" title="Menu"><i class="fa-solid fa-bars"></i></button>
-                    <button class="action-btn" id="clear-chat-btn" title="Clear Chat"><i class="fa-solid fa-trash-can"></i></button>
+                    <button class="action-btn" id="mobile-menu-btn"><i class="fa-solid fa-bars"></i></button>
+                    <button class="action-btn" id="clear-chat-btn"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </header>
 
-            <!-- Conversation View -->
-            <div id="view-conversation" class="view-section active">
-                <div class="chat-container" id="chat-container">
-                    <div class="message bot">
-                        <div class="avatar"><i class="fa-solid fa-robot"></i></div>
-                        <div class="bubble">
-                            <p>Namaste! Nenu me swar assistant ni. Aapko kaise help chahiye?</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="input-area">
-                    <div class="transcript-box" id="transcript-box">
-                        <span class="transcript-label"><i class="fa-solid fa-ear-listen"></i> Listening:</span>
-                        <span id="live-transcript" class="transcript-text">Waiting for voice...</span>
-                    </div>
-
-                    <div class="controls">
-                        <div class="mic-wrapper">
-                            <div class="pulse-ring ring-1"></div>
-                            <div class="pulse-ring ring-2"></div>
-                            <button id="mic-btn" class="mic-btn">
-                                <i class="fa-solid fa-microphone"></i>
-                            </button>
-                        </div>
-                        <p id="status-text" class="status-text">Tap to Speak</p>
-                    </div>
+            <div class="chat-container" id="chat-container">
+                <div class="message bot">
+                    <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                    <div class="bubble"><p>Namaste! Nenu me swar assistant ni. Aapko kaise help chahiye?</p></div>
                 </div>
             </div>
 
-            <!-- History View -->
-            <div id="view-history" class="view-section hidden">
-                <div class="history-container">
-                    <div class="history-content" id="history-content">
-                        Loading history...
-                    </div>
+            <div class="input-area">
+                <div class="transcript-box">
+                    <span style="color:var(--accent-primary); font-weight:600;">Listening:</span>
+                    <span id="live-transcript" style="font-style:italic; color:var(--text-secondary);"> Waiting for voice...</span>
                 </div>
-            </div>
 
-            <!-- Settings View -->
-            <div id="view-settings" class="view-section hidden">
-                <div class="settings-container">
-                    <div class="settings-card">
-                        <h3>System Information</h3>
-                        <div class="setting-row">
-                            <span>Status</span>
-                            <span class="badge badge-success">Online</span>
-                        </div>
+                <div class="controls">
+                    <div class="mic-wrapper">
+                        <button id="mic-btn" class="mic-btn"><i class="fa-solid fa-microphone"></i></button>
                     </div>
+                    <p id="status-text">Tap to Speak</p>
                 </div>
             </div>
         </main>
     </div>
-
     <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
     <script src="script.js"></script>
 </body>
