@@ -10,81 +10,60 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Middlewares
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
 
+// Path to public folder
+const publicPath = path.join(__dirname, 'public');
+
+// Serve static files (CSS, JS, Images)
+app.use(express.static(publicPath));
+
+// Main route to serve the HTML
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const indexPath = path.join(publicPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send("Error: index.html not found in public folder. Please check your GitHub files.");
+    }
 });
 
-const logFilePath = path.join(__dirname, 'chat_logs.txt');
+// Health check route
+app.get('/status', (req, res) => {
+    res.json({ status: "Server is running", time: new Date().toISOString() });
+});
 
-// Initialize Gemini API
-let genAI = null;
-let model = null;
+// Initialize Gemini AI
 let chatSession = null;
+const apiKey = process.env.GEMINI_API_KEY;
 
-function initAI() {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (apiKey && apiKey !== 'your_gemini_api_key_here') {
-        try {
-            genAI = new GoogleGenerativeAI(apiKey);
-            model = genAI.getGenerativeModel({
-                model: "gemini-1.5-flash", // Changed from 2.5 to 1.5 (stable version)
-                systemInstruction: `You are 'Swar AI', a helpful and professional customer support voice bot for a software company.
-                Your primary tasks are to greet users, answer basic questions about demos, and schedule them.
-                Respond ONLY in a natural mix of Hindi and Telugu (Romanized). Keep responses 1-2 sentences.`
-            });
-            chatSession = model.startChat({
-                history: [],
-                generationConfig: { temperature: 0.2 }
-            });
-            console.log("AI Model initialized successfully.");
-        } catch (error) {
-            console.error("Failed to initialize AI:", error);
-        }
+if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 sentences in a mix of Hindi and Telugu (Romanized)."
+        });
+        chatSession = model.startChat({ history: [] });
+    } catch (e) {
+        console.error("AI Init Error:", e);
     }
 }
 
-initAI();
-
 app.post('/api/chat', async (req, res) => {
-    const userMessage = req.body.message;
-    let botReply = '';
-
-    if (!chatSession) {
-        botReply = "AI is not initialized. Please check your API key settings.";
-    } else {
-        try {
-            const result = await chatSession.sendMessage(userMessage);
-            botReply = result.response.text().trim();
-        } catch (error) {
-            console.error("AI Error:", error);
-            botReply = "Kshaminchandi, network error vachindi. Please try again.";
-        }
-    }
-
-    // Append to log file (wrapped in try-catch for read-only environments)
+    if (!chatSession) return res.status(500).json({ error: "AI not initialized" });
     try {
-        const logEntry = `User: ${userMessage}\nBot: ${botReply}\n\n`;
-        fs.appendFile(logFilePath, logEntry, (err) => {
-            if (err) console.warn('Logging skipped: File system is read-only or error occurred.');
-        });
-    } catch (e) {
-        console.warn('Logging failed but continuing...');
+        const result = await chatSession.sendMessage(req.body.message);
+        res.json({ reply: result.response.text().trim() });
+    } catch (error) {
+        res.status(500).json({ error: "AI Error" });
     }
-
-    res.json({ reply: botReply });
 });
 
 app.get('/api/history', (req, res) => {
-    fs.readFile(logFilePath, 'utf8', (err, data) => {
-        if (err) {
-            return res.json({ history: "No conversation history found or storage is disabled." });
-        }
-        res.json({ history: data });
-    });
+    res.json({ history: "Cloud storage for history is not configured, but the bot is active!" });
 });
 
 app.listen(PORT, () => {
