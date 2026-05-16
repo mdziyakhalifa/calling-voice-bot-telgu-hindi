@@ -27,19 +27,23 @@ if (apiKey && apiKey !== 'your_gemini_api_key_here') {
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
-            systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 short sentences in a mix of Hindi and Telugu (Romanized)."
+            systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 sentences in a mix of Hindi and Telugu (Romanized script)."
         });
         chatSession = model.startChat({ history: [] });
-        console.log("AI Started");
-    } catch (e) { console.error("AI Error:", e); }
+    } catch (e) { console.error("AI Init Error:", e); }
 }
 
 app.post('/api/chat', async (req, res) => {
     if (!chatSession) return res.status(500).json({ error: "AI not ready" });
     try {
         const result = await chatSession.sendMessage(req.body.message || "hi");
-        res.json({ reply: result.response.text().trim() });
-    } catch (error) { res.status(500).json({ error: "AI Processing Error" }); }
+        const reply = result.response.text().trim();
+        res.json({ reply: reply });
+    } catch (error) {
+        // This will now send the ACTUAL error message to your screen
+        console.error("Gemini Error:", error);
+        res.status(500).json({ error: "Google AI Error: " + error.message });
+    }
 });
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
