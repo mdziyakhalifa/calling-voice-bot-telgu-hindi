@@ -14,25 +14,22 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Path to public folder
-const publicPath = path.join(__dirname, 'public');
+// Serve static files from the ROOT directory (where your index.html, style.css are)
+app.use(express.static(__dirname));
 
-// Serve static files (CSS, JS, Images)
-app.use(express.static(publicPath));
-
-// Main route to serve the HTML
+// Main route to serve the HTML from the root
 app.get('/', (req, res) => {
-    const indexPath = path.join(publicPath, 'index.html');
+    const indexPath = path.join(__dirname, 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
     } else {
-        res.status(404).send("Error: index.html not found in public folder. Please check your GitHub files.");
+        res.status(404).send("Error: index.html not found in the root folder.");
     }
 });
 
 // Health check route
 app.get('/status', (req, res) => {
-    res.json({ status: "Server is running", time: new Date().toISOString() });
+    res.json({ status: "Server is alive", time: new Date().toISOString() });
 });
 
 // Initialize Gemini AI
@@ -47,23 +44,21 @@ if (apiKey && apiKey !== 'your_gemini_api_key_here') {
             systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 sentences in a mix of Hindi and Telugu (Romanized)."
         });
         chatSession = model.startChat({ history: [] });
+        console.log("AI Started");
     } catch (e) {
         console.error("AI Init Error:", e);
     }
 }
 
 app.post('/api/chat', async (req, res) => {
-    if (!chatSession) return res.status(500).json({ error: "AI not initialized" });
+    if (!chatSession) return res.status(500).json({ error: "AI not initialized. Check GEMINI_API_KEY." });
     try {
         const result = await chatSession.sendMessage(req.body.message);
         res.json({ reply: result.response.text().trim() });
     } catch (error) {
-        res.status(500).json({ error: "AI Error" });
+        console.error("Chat Error:", error);
+        res.status(500).json({ error: "AI Response Error" });
     }
-});
-
-app.get('/api/history', (req, res) => {
-    res.json({ history: "Cloud storage for history is not configured, but the bot is active!" });
 });
 
 app.listen(PORT, () => {
