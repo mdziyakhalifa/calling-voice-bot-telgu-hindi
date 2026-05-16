@@ -1,90 +1,80 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const micBtn = document.getElementById('mic-btn');
-    const micWrapper = document.querySelector('.mic-wrapper');
-    const chatContainer = document.getElementById('chat-container');
-    const liveTranscript = document.getElementById('live-transcript');
-    const statusText = document.getElementById('status-text');
-    const systemStatus = document.getElementById('system-status');
-    const statusIndicator = document.querySelector('.status-indicator');
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+require('dotenv').config();
 
-    let recognition = null;
-    let isListening = false;
-    let synthesis = window.speechSynthesis;
+// Attempt to load AI library safely
+let GoogleGenerativeAI;
+try {
+    GoogleGenerativeAI = require('@google/generative-ai').GoogleGenerativeAI;
+} catch (e) {
+    console.error("Critical: Could not load @google/generative-ai package.");
+}
 
-    // Relative path works best on Render
-    const apiUrl = '/api/chat';
+const app = express();
+const PORT = process.env.PORT || 3001;
 
-    // Status check to verify API Key
-    fetch('/status')
-        .then(res => res.json())
-        .then(data => {
-            if (data.ai_ready) {
-                systemStatus.innerText = 'AI Online';
-                statusIndicator.style.backgroundColor = '#10b981';
-            } else {
-                systemStatus.innerText = 'AI Key Missing';
-                statusIndicator.style.backgroundColor = '#ef4444';
-            }
-        }).catch(() => { systemStatus.innerText = 'Server Error'; });
+// Middlewares
+app.use(cors());
+app.use(express.json());
 
-    function unlockSynthesis() {
-        const ut = new SpeechSynthesisUtterance('');
-        ut.volume = 0;
-        window.speechSynthesis.speak(ut);
+// Serve static files from the ROOT directory
+app.use(express.static(__dirname));
+
+// Root route
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send("Error: index.html not found. Check GitHub files.");
     }
+});
 
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognition = new SpeechRecognition();
-        recognition.lang = 'hi-IN';
-        recognition.onstart = () => { isListening = true; micWrapper.classList.add('listening'); micBtn.innerHTML = '<i class="fa-solid fa-stop"></i>'; statusText.innerText = 'Listening...'; };
-        recognition.onresult = (event) => {
-            let transcript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) transcript += event.results[i][0].transcript; }
-            if (transcript) {
-                liveTranscript.innerText = transcript;
-                handleUserMessage(transcript);
-            }
-        };
-        recognition.onend = () => { isListening = false; micWrapper.classList.remove('listening'); micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; statusText.innerText = 'Tap to Speak'; };
+// Initialize AI globally
+let chatSession = null;
+
+// Health check
+app.get('/status', (req, res) => {
+    res.json({ 
+        status: "Server is running", 
+        ai_ready: !!chatSession,
+        port: PORT
+    });
+});
+
+// AI Initialization Logic
+const apiKey = process.env.GEMINI_API_KEY;
+if (apiKey && GoogleGenerativeAI) {
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 sentences in a Hindi/Telugu mix."
+        });
+        chatSession = model.startChat({ history: [] });
+        console.log("AI initialized successfully.");
+    } catch (err) {
+        console.error("AI Initialization Failed:", err.message);
     }
+}
 
-    micBtn.addEventListener('click', () => { unlockSynthesis(); if (isListening) recognition.stop(); else recognition.start(); });
-
-    async function handleUserMessage(msg) {
-        addMessage(msg, 'user');
-        statusText.innerText = 'Swar is thinking...';
-        try {
-            const res = await fetch(apiUrl, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify({ message: msg }) 
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'AI Error');
-            addMessage(data.reply, 'bot', true);
-            statusText.innerText = 'Tap to Speak';
-        } catch (e) { 
-            console.error(e);
-            addMessage("Error: " + e.message + ". Check Render Env Variables.", 'bot'); 
-            statusText.innerText = 'Error'; 
-        }
+app.post('/api/chat', async (req, res) => {
+    if (!chatSession) {
+        return res.status(500).json({ error: "AI is not ready. Check API key on Render." });
     }
-
-    function addMessage(text, sender, play = false) {
-        const div = document.createElement('div');
-        div.className = `message ${sender}`;
-        div.innerHTML = `<div class="bubble"><p>${text}</p></div>`;
-        chatContainer.appendChild(div);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-        if (play && sender === 'bot') speak(text);
+    try {
+        const result = await chatSession.sendMessage(req.body.message || "hello");
+        const reply = result.response.text().trim();
+        res.json({ reply: reply });
+    } catch (error) {
+        console.error("Chat API Error:", error);
+        res.status(500).json({ error: "AI failed to respond." });
     }
+});
 
-    function speak(text) {
-        synthesis.cancel();
-        const ut = new SpeechSynthesisUtterance(text);
-        const voices = synthesis.getVoices();
-        ut.voice = voices.find(v => v.lang.includes('hi-IN')) || voices[0];
-        synthesis.speak(ut);
-    }
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is live on port ${PORT}`);
 });
