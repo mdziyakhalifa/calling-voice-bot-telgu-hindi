@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swar - Premium AI Voice Assistant</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -15,7 +15,8 @@
     </div>
 
     <div class="app-wrapper">
-        <aside class="sidebar">
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
                     <i class="fa-solid fa-wave-square"></i>
@@ -23,52 +24,171 @@
                 </div>
             </div>
             <nav class="sidebar-nav">
-                <a href="#" class="nav-item active"><i class="fa-solid fa-message"></i> Conversation</a>
-                <a href="#" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
-                <a href="#" class="nav-item"><i class="fa-solid fa-gear"></i> Settings</a>
+                <a href="#" class="nav-item active" data-view="conversation">
+                    <i class="fa-solid fa-message"></i> Conversation
+                </a>
+                <a href="#" class="nav-item" data-view="history">
+                    <i class="fa-solid fa-clock-rotate-left"></i> History
+                </a>
+                <a href="#" class="nav-item" data-view="settings">
+                    <i class="fa-solid fa-gear"></i> Settings
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <div class="status-badge">
-                    <span class="status-indicator"></span>
-                    <span id="system-status">Checking Status...</span>
+                    <span class="status-indicator" id="status-dot"></span>
+                    <span id="system-status">Checking...</span>
                 </div>
             </div>
         </aside>
 
+        <!-- MAIN CONTENT -->
         <main class="main-content">
-            <header class="chat-header">
-                <div class="header-info">
-                    <h2>Virtual Assistant</h2>
-                    <p>Hindi & Telugu Supported</p>
-                </div>
-                <div class="header-actions">
-                    <button class="action-btn" id="mobile-menu-btn"><i class="fa-solid fa-bars"></i></button>
-                    <button class="action-btn" id="clear-chat-btn"><i class="fa-solid fa-trash-can"></i></button>
-                </div>
-            </header>
 
-            <div class="chat-container" id="chat-container">
-                <div class="message bot">
-                    <div class="avatar"><i class="fa-solid fa-robot"></i></div>
-                    <div class="bubble"><p>Namaste! Nenu me swar assistant ni. Aapko kaise help chahiye?</p></div>
-                </div>
-            </div>
-
-            <div class="input-area">
-                <div class="transcript-box">
-                    <span style="color:var(--accent-primary); font-weight:600;">Listening:</span>
-                    <span id="live-transcript" style="font-style:italic; color:var(--text-secondary);"> Waiting for voice...</span>
-                </div>
-
-                <div class="controls">
-                    <div class="mic-wrapper">
-                        <button id="mic-btn" class="mic-btn"><i class="fa-solid fa-microphone"></i></button>
+            <!-- ── VIEW: CONVERSATION ── -->
+            <div class="view-section active" id="view-conversation">
+                <header class="chat-header">
+                    <div class="header-info">
+                        <h2>Virtual Assistant</h2>
+                        <p>Hindi &amp; Telugu Supported</p>
                     </div>
-                    <p id="status-text">Tap to Speak</p>
+                    <div class="header-actions">
+                        <button class="action-btn" id="mobile-menu-btn" title="Menu">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        <button class="action-btn" id="clear-chat-btn" title="Clear chat">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="chat-container" id="chat-container">
+                    <div class="message bot">
+                        <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+                        <div class="bubble"><p>Namaste! Main Swar AI hoon. Aapko kaise help kar sakta hoon?</p></div>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="transcript-box">
+                        <span class="transcript-label">Listening:</span>
+                        <span id="live-transcript" class="transcript-text">Waiting for voice...</span>
+                    </div>
+                    <div class="controls">
+                        <div class="mic-wrapper">
+                            <button id="mic-btn" class="mic-btn" title="Tap to speak">
+                                <i class="fa-solid fa-microphone"></i>
+                            </button>
+                        </div>
+                        <p id="status-text">Tap to Speak</p>
+                    </div>
                 </div>
             </div>
+
+            <!-- ── VIEW: HISTORY ── -->
+            <div class="view-section" id="view-history">
+                <header class="chat-header">
+                    <div class="header-info">
+                        <h2>Conversation History</h2>
+                        <p>Past interactions</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="action-btn" id="mobile-menu-btn-h" title="Menu">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        <button class="action-btn" id="refresh-history-btn" title="Refresh history">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <button class="action-btn danger-btn" id="clear-history-btn" title="Clear all history">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </header>
+                <div class="history-container" id="history-container">
+                    <div class="history-empty">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        <p>Loading history...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── VIEW: SETTINGS ── -->
+            <div class="view-section" id="view-settings">
+                <header class="chat-header">
+                    <div class="header-info">
+                        <h2>Settings</h2>
+                        <p>Configure your assistant</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="action-btn" id="mobile-menu-btn-s" title="Menu">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                    </div>
+                </header>
+                <div class="settings-container">
+
+                    <div class="settings-group">
+                        <h3><i class="fa-solid fa-microphone"></i> Speech Recognition</h3>
+                        <div class="setting-row">
+                            <label>Input Language</label>
+                            <select id="setting-lang">
+                                <option value="hi-IN">Hindi (hi-IN)</option>
+                                <option value="te-IN">Telugu (te-IN)</option>
+                                <option value="hi-IN-te">Hindi + Telugu Mix</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label>Continuous Listening</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-continuous">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3><i class="fa-solid fa-volume-high"></i> Text to Speech</h3>
+                        <div class="setting-row">
+                            <label>Bot Voice Language</label>
+                            <select id="setting-tts-lang">
+                                <option value="hi-IN">Hindi</option>
+                                <option value="te-IN">Telugu</option>
+                            </select>
+                        </div>
+                        <div class="setting-row">
+                            <label>Auto-play Bot Response</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="setting-autoplay" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-row">
+                            <label>Speech Rate</label>
+                            <input type="range" id="setting-rate" min="0.5" max="2" step="0.1" value="1">
+                            <span id="rate-label">1.0×</span>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3><i class="fa-solid fa-circle-info"></i> About</h3>
+                        <div class="about-card">
+                            <p><strong>Swar AI</strong> — Hindi + Telugu Voice Bot</p>
+                            <p>Backend: Node.js + Express + Gemini 1.5 Flash</p>
+                            <p>STT: Web Speech API (hi-IN)</p>
+                            <p>TTS: Browser SpeechSynthesis</p>
+                            <p>Logs: chat_logs.txt (local)</p>
+                        </div>
+                    </div>
+
+                    <button class="save-btn" id="save-settings-btn">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Settings
+                    </button>
+                </div>
+            </div>
+
         </main>
     </div>
+
     <div class="mobile-nav-overlay" id="mobile-nav-overlay"></div>
     <script src="script.js"></script>
 </body>
