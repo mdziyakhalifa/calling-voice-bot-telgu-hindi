@@ -11,44 +11,42 @@ document.addEventListener('DOMContentLoaded', () => {
     let isListening = false;
     let synthesis = window.speechSynthesis;
 
-    // Check server status
     fetch('/status').then(res => res.json()).then(data => {
-        if (data.ai_ready) {
-            systemStatus.innerText = 'AI Online';
-            statusIndicator.style.backgroundColor = '#10b981';
-        } else {
-            systemStatus.innerText = 'AI Key Missing';
-            statusIndicator.style.backgroundColor = '#ef4444';
-        }
-    }).catch(() => { systemStatus.innerText = 'Server Offline'; });
-
-    function unlockAudio() {
-        const ut = new SpeechSynthesisUtterance('');
-        ut.volume = 0;
-        window.speechSynthesis.speak(ut);
-    }
+        if (data.ai_ready) { systemStatus.innerText = 'AI Online'; statusIndicator.style.backgroundColor = '#10b981'; }
+    }).catch(() => { systemStatus.innerText = 'Offline'; });
 
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
         recognition.lang = 'hi-IN';
-        recognition.onstart = () => { 
-            isListening = true; 
-            micWrapper.classList.add('listening'); 
-            micBtn.innerHTML = '<i class="fa-solid fa-stop"></i>';
-        };
+        recognition.continuous = false;
+        recognition.interimResults = true; // THIS ALLOWS REAL-TIME TEXT
+
+        recognition.onstart = () => { isListening = true; micWrapper.classList.add('listening'); micBtn.innerHTML = '<i class="fa-solid fa-stop"></i>'; statusText.innerText = 'Listening...'; };
+        
         recognition.onresult = (event) => {
-            let transcript = '';
+            let interimTranscript = '';
+            let finalTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) transcript += event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+                else interimTranscript += event.results[i][0].transcript;
             }
-            if (transcript) handleUserMessage(transcript);
+            // Update the screen in REAL-TIME
+            if (interimTranscript) liveTranscript.innerText = interimTranscript;
+            if (finalTranscript) {
+                liveTranscript.innerText = finalTranscript;
+                handleUserMessage(finalTranscript);
+            }
         };
-        recognition.onend = () => {
-            isListening = false;
-            micWrapper.classList.remove('listening');
-            micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
-        };
+
+        recognition.onerror = () => stopListening();
+        recognition.onend = () => stopListening();
+    }
+
+    function unlockAudio() {
+        const ut = new SpeechSynthesisUtterance('');
+        ut.volume = 0;
+        window.speechSynthesis.speak(ut);
     }
 
     micBtn.addEventListener('click', () => {
@@ -61,19 +59,12 @@ document.addEventListener('DOMContentLoaded', () => {
         addMessage(msg, 'user');
         statusText.innerText = 'Thinking...';
         try {
-            const res = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: msg })
-            });
+            const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             addMessage(data.reply, 'bot', true);
             statusText.innerText = 'Tap to Speak';
-        } catch (e) {
-            addMessage("Error: " + e.message, 'bot');
-            statusText.innerText = 'Error';
-        }
+        } catch (e) { addMessage("Error: " + e.message, 'bot'); statusText.innerText = 'Error'; }
     }
 
     function addMessage(text, sender, play = false) {
