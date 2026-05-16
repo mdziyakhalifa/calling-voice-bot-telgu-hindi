@@ -1,62 +1,90 @@
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+document.addEventListener('DOMContentLoaded', () => {
+    const micBtn = document.getElementById('mic-btn');
+    const micWrapper = document.querySelector('.mic-wrapper');
+    const chatContainer = document.getElementById('chat-container');
+    const liveTranscript = document.getElementById('live-transcript');
+    const statusText = document.getElementById('status-text');
+    const systemStatus = document.getElementById('system-status');
+    const statusIndicator = document.querySelector('.status-indicator');
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+    let recognition = null;
+    let isListening = false;
+    let synthesis = window.speechSynthesis;
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+    // Relative path works best on Render
+    const apiUrl = '/api/chat';
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+    // Status check to verify API Key
+    fetch('/status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.ai_ready) {
+                systemStatus.innerText = 'AI Online';
+                statusIndicator.style.backgroundColor = '#10b981';
+            } else {
+                systemStatus.innerText = 'AI Key Missing';
+                statusIndicator.style.backgroundColor = '#ef4444';
+            }
+        }).catch(() => { systemStatus.innerText = 'Server Error'; });
 
-// Serve static files from the ROOT directory
-app.use(express.static(__dirname));
-
-// Main route
-app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send("Error: index.html not found.");
+    function unlockSynthesis() {
+        const ut = new SpeechSynthesisUtterance('');
+        ut.volume = 0;
+        window.speechSynthesis.speak(ut);
     }
-});
 
-// Health check
-let chatSession = null;
-app.get('/status', (req, res) => {
-    res.json({ status: "Server is active", ai_ready: !!chatSession });
-});
-
-// Initialize Gemini AI
-const apiKey = process.env.GEMINI_API_KEY;
-if (apiKey && apiKey !== 'your_gemini_api_key_here') {
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            systemInstruction: "You are 'Swar AI', a helpful voice bot. Respond in 1-2 sentences in a mix of Hindi and Telugu (Romanized script)."
-        });
-        chatSession = model.startChat({ history: [] });
-    } catch (e) {
-        console.error("AI Error:", e);
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'hi-IN';
+        recognition.onstart = () => { isListening = true; micWrapper.classList.add('listening'); micBtn.innerHTML = '<i class="fa-solid fa-stop"></i>'; statusText.innerText = 'Listening...'; };
+        recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) { if (event.results[i].isFinal) transcript += event.results[i][0].transcript; }
+            if (transcript) {
+                liveTranscript.innerText = transcript;
+                handleUserMessage(transcript);
+            }
+        };
+        recognition.onend = () => { isListening = false; micWrapper.classList.remove('listening'); micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; statusText.innerText = 'Tap to Speak'; };
     }
-}
 
-app.post('/api/chat', async (req, res) => {
-    if (!chatSession) return res.status(500).json({ error: "AI not initialized" });
-    try {
-        const result = await chatSession.sendMessage(req.body.message);
-        res.json({ reply: result.response.text().trim() });
-    } catch (error) {
-        res.status(500).json({ error: "AI Error" });
+    micBtn.addEventListener('click', () => { unlockSynthesis(); if (isListening) recognition.stop(); else recognition.start(); });
+
+    async function handleUserMessage(msg) {
+        addMessage(msg, 'user');
+        statusText.innerText = 'Swar is thinking...';
+        try {
+            const res = await fetch(apiUrl, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ message: msg }) 
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'AI Error');
+            addMessage(data.reply, 'bot', true);
+            statusText.innerText = 'Tap to Speak';
+        } catch (e) { 
+            console.error(e);
+            addMessage("Error: " + e.message + ". Check Render Env Variables.", 'bot'); 
+            statusText.innerText = 'Error'; 
+        }
     }
-});
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    function addMessage(text, sender, play = false) {
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        div.innerHTML = `<div class="bubble"><p>${text}</p></div>`;
+        chatContainer.appendChild(div);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (play && sender === 'bot') speak(text);
+    }
+
+    function speak(text) {
+        synthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text);
+        const voices = synthesis.getVoices();
+        ut.voice = voices.find(v => v.lang.includes('hi-IN')) || voices[0];
+        synthesis.speak(ut);
+    }
 });
