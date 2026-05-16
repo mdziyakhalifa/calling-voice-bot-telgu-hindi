@@ -1,0 +1,72 @@
+User: हेलो
+Bot: Kshaminchandi, network error vachindi. / Mujhe samajh nahi aaya, please try again.
+
+User: हेलो
+Bot: Please paste your real GEMINI_API_KEY in the .env file to enable AI responses. / AI kosam mi real API key ni .env file lo pettandi.
+
+User: ऑलरेडी आई हैव ट्विस्टेड gemini अपी की
+Bot: Please paste your real GEMINI_API_KEY in the .env file to enable AI responses. / AI kosam mi real API key ni .env file lo pettandi.
+
+User: नमस्ते मुझे डेमो चाहिए
+Bot: Namaste! Sure, meeku software demo schedule cheyadaniki nenu ikkada unnanu. Meeku eppudu anukulanga untundi?
+
+User: मुझे एक वेबसाइट बनानी है
+Bot: Maaf kijiye, nenu kevalam software demos schedule cheyadaniki unnanu. Website development gurinchi, ma agent meeku sahayam cheyagaluru.
+
+User: वेयर इस द ऑफिस लोकेटेड
+Bot: Maaf kijiye, nenu office location details ivvalenu. Ma agent meeku ee vishayam lo sahayam cheyagaluru.
+
+User: नमस्ते ना पेरू जिया
+Bot: नमस्ते जिया जी! Swar AI mein aapka swagat hai. Main aapki software demo ke baare mein kaise madad kar sakti hoon?
+
+User: मुझे एक वेबसाइट चाहिए
+Bot: Jiya ji, main aapko software demos schedule karne mein madad kar sakti hoon. Kya aap hamare software ka demo dekhna chahti hain?
+
+User: तेलुगु में बोलो
+Bot: Namaste Jiya garu! Telugu lo matladuthanu. Mana software demo gurinchi meeku emaina prashnalu unnaaya, leda demo schedule cheyali anukuntunnara?
+
+User: हेलो
+Bot: नमस्ते! Swar AI se main aapki kaise madad kar sakta hoon? Kya aap software demo ke baare mein jaanna chahte hain?
+
+User: हेलो
+Bot: नमस्ते! Swar AI se main aapki kaise madad kar sakta hoon. Kya aapko software demo schedule karna hai ya uske baare mein jaanna hai?
+
+User: नमस्ते ना पेरू जिया
+Bot: नमस्ते जिया जी! Swar AI se main aapki kaise madad kar sakta hoon? Kya aap software demo schedule karna chahte hain?
+
+User: मीकू डेमो शेड्यूल चेस्टुन्ना
+Bot: అర్థమైంది జయా గారు! Meekosam demo schedule cheyadaniki nenu ready ga unnanu. Meeku eppudu anukulanga untundi?
+
+User: मीकू एलएनटी वेबसाइट कवाली
+Bot: జయా గారు, nenu L&T website gurinchi sahayam cheyalenu. Nenu software demos schedule cheyadaniki unnanu, meeku eppudu anukulanga untundi?
+
+User: मीकू मॉडर्न डिजाइन कवर लाली का सिंपल डिजाइन का वाला
+Bot: జయా గారు, nenu software demo schedule cheyadaniki unnanu. Design preferences gurinchi nenu sahayam cheyalenu. Meekosam demo schedule cheyadaniki, meeku eppudu anukulanga untundo cheppagalara?
+
+User: हेलो
+Bot: Namaste! Main Swar AI hoon, aapki software demo ke liye madad karne ke liye. Meeku em sahayyam cheyyagalanu?
+
+User: मुझे एक वेबसाइट बनानी है
+Bot: Website bananeki jaankari ke liye, hum aapko hamare software ka demo dikha sakte hain. Mana software ela help chestundo choodataniki demo schedule cheddama?
+
+User: तुम्हारा नाम क्या है
+Bot: Mera naam Swar AI hai. Main aapko software demo schedule karne mein madad karne ke liye yahan hoon.
+
+User: किस टाइप का सॉफ्टवेयर
+Bot: Humara software website development aur management ke liye hai. Mana software ela pani chestundo choodataniki oka demo schedule cheddama?
+
+User: तेलुगु में रिस्पांस करो
+Bot: Sure, nenu Telugu lo respond avutanu. Mana software website development mariyu management kosam. Meekosam oka demo schedule cheyyana?
+
+User: तुम्हारी कंपनी का नाम क्या है
+Bot: Nenu oka software company tarapuna meeku sahayyam chestunnanu. Mana software demo gurinchi matladudama?
+
+User: क्या बोल रहे हो
+Bot: Nenu oka software company ki customer support voice bot ni. Mana software demo gurinchi matladudama?
+
+User: किस टाइप का सॉफ्टवेयर
+Bot: Mana software website development mariyu management kosam. Meekosam oka demo schedule cheyyana?
+
+User: मेरा नाम जिया है
+Bot: Namaste Jia garu! Mana software website development mariyu management kosam. Meekosam oka demo schedule cheyyana?
+
