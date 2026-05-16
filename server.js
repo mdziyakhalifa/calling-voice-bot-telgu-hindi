@@ -12,28 +12,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 let chatSession = null;
 app.get('/status', (req, res) => res.json({ ai_ready: !!chatSession }));
 
 const apiKey = process.env.GEMINI_API_KEY;
-async function initAI() {
-    if (!apiKey || apiKey === 'your_gemini_api_key_here') return;
+if (apiKey && apiKey !== 'your_gemini_api_key_here') {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // We use gemini-1.5-flash as it's the best free model
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        // Using gemini-pro which is the most compatible for all API keys
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         chatSession = model.startChat({ history: [] });
-        console.log("AI Ready");
-    } catch (e) { console.error("AI Init Error:", e); }
+    } catch (e) { console.error("AI Error:", e); }
 }
-initAI();
 
 app.post('/api/chat', async (req, res) => {
-    if (!chatSession) return res.status(500).json({ error: "AI not ready. Check Render API Key." });
+    if (!chatSession) return res.status(500).json({ error: "AI not ready" });
     try {
         const result = await chatSession.sendMessage(req.body.message || "hi");
         res.json({ reply: result.response.text().trim() });
