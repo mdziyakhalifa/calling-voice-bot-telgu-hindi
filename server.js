@@ -1,92 +1,158 @@
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+document.addEventListener('DOMContentLoaded', () => {
+    const micBtn = document.getElementById('mic-btn');
+    const micWrapper = document.querySelector('.mic-wrapper');
+    const chatContainer = document.getElementById('chat-container');
+    const liveTranscript = document.getElementById('live-transcript');
+    const statusText = document.getElementById('status-text');
+    const systemStatus = document.getElementById('system-status');
+    const statusIndicator = document.querySelector('.status-indicator');
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+    let recognition = null;
+    let isListening = false;
+    let synthesis = window.speechSynthesis;
 
-const app = express();
-const PORT = process.env.PORT || 3001;
+    // Correct API URL for Render
+    const apiUrl = window.location.protocol === 'file:' 
+        ? 'http://localhost:3001/api/chat' 
+        : '/api/chat';
 
-// Middlewares
-app.use(cors());
-app.use(bodyParser.json());
-
-// Serve static files from the ROOT directory
-app.use(express.static(__dirname));
-
-// Main route to serve the HTML
-app.get('/', (req, res) => {
-    const indexPath = path.join(__dirname, 'index.html');
-    if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-    } else {
-        res.status(404).send("Error: index.html not found in root. Make sure it is uploaded to GitHub.");
-    }
-});
-
-// Health check route - visit your-url.onrender.com/status to verify
-app.get('/status', (req, res) => {
-    res.json({ 
-        status: "Server is active", 
-        ai_initialized: !!chatSession,
-        time: new Date().toISOString() 
-    });
-});
-
-// Initialize Gemini AI
-let chatSession = null;
-const apiKey = process.env.GEMINI_API_KEY;
-
-if (apiKey && apiKey !== 'your_gemini_api_key_here') {
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            systemInstruction: "You are 'Swar AI', a helpful voice bot for a software company. Respond only in 1-2 sentences using a natural mix of Hindi and Telugu (Romanized script)."
+    // Verify server status on load
+    fetch(window.location.protocol === 'file:' ? 'http://localhost:3001/status' : '/status')
+        .then(res => res.json())
+        .then(data => {
+            console.log("Server Status:", data);
+            if (data.ai_initialized) {
+                systemStatus.innerText = 'AI Online';
+                statusIndicator.style.backgroundColor = 'var(--success)';
+            } else {
+                systemStatus.innerText = 'AI Key Missing';
+                statusIndicator.style.backgroundColor = 'var(--danger)';
+            }
+        })
+        .catch(err => {
+            console.error("Server check failed:", err);
+            systemStatus.innerText = 'Server Offline';
         });
-        chatSession = model.startChat({ history: [] });
-        console.log("AI initialized successfully.");
-    } catch (e) {
-        console.error("AI Initialization Error:", e);
-    }
-} else {
-    console.warn("WARNING: GEMINI_API_KEY is missing or invalid.");
-}
 
-app.post('/api/chat', async (req, res) => {
-    if (!chatSession) {
-        return res.status(500).json({ error: "AI not initialized. Please set GEMINI_API_KEY in Render Environment Variables." });
+    // "Unlock" speech synthesis for mobile
+    let synthesisUnlocked = false;
+    function unlockSynthesis() {
+        if (synthesisUnlocked) return;
+        const silentUtterance = new SpeechSynthesisUtterance('');
+        silentUtterance.volume = 0;
+        window.speechSynthesis.speak(silentUtterance);
+        synthesisUnlocked = true;
     }
 
-    const { message } = req.body;
-    if (!message) return res.status(400).json({ error: "Message is required" });
+    // Initialize Web Speech API
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'hi-IN'; 
+        recognition.continuous = false;
+        recognition.interimResults = true;
 
-    try {
-        const result = await chatSession.sendMessage(message);
-        const botReply = result.response.text().trim();
-        res.json({ reply: botReply });
-    } catch (error) {
-        console.error("Gemini API Error:", error);
-        res.status(500).json({ error: "Failed to get AI response. Check API quota or key validity." });
+        recognition.onstart = () => {
+            isListening = true;
+            micWrapper.classList.add('listening');
+            micBtn.innerHTML = '<i class="fa-solid fa-stop"></i>';
+            statusText.innerText = 'Listening...';
+        };
+
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+            }
+            if (finalTranscript) {
+                liveTranscript.innerText = finalTranscript;
+                handleUserMessage(finalTranscript);
+            }
+        };
+
+        recognition.onerror = () => stopListening();
+        recognition.onend = () => stopListening();
     }
-});
 
-// History endpoint (basic log reading)
-app.get('/api/history', (req, res) => {
-    const logPath = path.join(__dirname, 'chat_logs.txt');
-    if (fs.existsSync(logPath)) {
-        fs.readFile(logPath, 'utf8', (err, data) => {
-            if (err) return res.json({ history: "Error reading history." });
-            res.json({ history: data });
+    function toggleListening() {
+        unlockSynthesis();
+        if (isListening) recognition.stop();
+        else recognition.start();
+    }
+
+    function stopListening() {
+        isListening = false;
+        micWrapper.classList.remove('listening');
+        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        statusText.innerText = 'Tap to Speak';
+    }
+
+    async function handleUserMessage(message) {
+        addMessageToChat(message, 'user');
+        statusText.innerText = 'Swar is thinking...';
+        
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Server processing error');
+            }
+            
+            statusText.innerText = 'Tap to Speak';
+            addMessageToChat(data.reply, 'bot', true);
+        } catch (error) {
+            console.error('Fetch Error:', error);
+            addMessageToChat('Error: ' + error.message, 'bot', false);
+            statusText.innerText = 'Error';
+        }
+    }
+
+    function addMessageToChat(text, sender, autoPlay = false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${sender}`;
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.innerHTML = `<p>${text}</p>`;
+        
+        if (sender === 'bot') {
+            const btn = document.createElement('button');
+            btn.className = 'playback-btn';
+            btn.innerHTML = '<i class="fa-solid fa-volume-high"></i> Play';
+            btn.onclick = () => speak(text);
+            bubble.appendChild(btn);
+        }
+        
+        msgDiv.appendChild(bubble);
+        chatContainer.appendChild(msgDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        if (autoPlay && sender === 'bot') speak(text);
+    }
+
+    function speak(text) {
+        synthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voices = synthesis.getVoices();
+        let voice = voices.find(v => v.lang.includes('hi-IN') || v.lang.includes('te-IN')) || voices.find(v => v.lang.includes('en-IN'));
+        if (voice) utterance.voice = voice;
+        synthesis.speak(utterance);
+    }
+
+    micBtn.addEventListener('click', toggleListening);
+
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobile-nav-overlay');
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
         });
-    } else {
-        res.json({ history: "No conversation history found." });
     }
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
 });
