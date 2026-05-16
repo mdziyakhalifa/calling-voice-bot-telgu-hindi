@@ -12,21 +12,17 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 let chatSession = null;
-app.get('/status', (req, res) => {
-    res.json({ ai_ready: !!chatSession });
-});
+app.get('/status', (req, res) => res.json({ ai_ready: !!chatSession }));
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (apiKey && apiKey !== 'your_gemini_api_key_here') {
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Using gemini-pro for maximum compatibility
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        // We use gemini-1.5-flash as it is the current standard for Free Tier
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         chatSession = model.startChat({ history: [] });
     } catch (e) { console.error("AI Error:", e); }
 }
@@ -41,4 +37,4 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server on ${PORT}`));
