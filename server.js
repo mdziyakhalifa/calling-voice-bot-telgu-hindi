@@ -41,7 +41,7 @@ if (apiKey && apiKey !== 'your_gemini_api_key_here') {
         const genAI = new GoogleGenerativeAI(apiKey);
         // gemini-pro is DEPRECATED — use gemini-1.5-flash
         const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.0-flash',
             systemInstruction: SYSTEM_PROMPT,
             generationConfig: { temperature: 0.3, maxOutputTokens: 150 }
         });
