@@ -3,7 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,8 +16,6 @@ app.use(express.static(__dirname));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 // ── AI Setup ──────────────────────────────────────────────────────────────────
-let chatSession = null;
-
 const SYSTEM_PROMPT = `You are 'Swar AI', a warm and professional customer support voice bot for a software company.
 
 YOUR TASKS:
@@ -35,39 +33,43 @@ LANGUAGE RULES (CRITICAL):
 - Do NOT invent prices, features, or technical details.
 - If the user speaks pure Hindi, mix in some Telugu. If pure Telugu, mix in some Hindi.`;
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (apiKey && apiKey !== 'your_gemini_api_key_here') {
+const groqApiKey = process.env.GROQ_API_KEY;
+let groq = null;
+
+if (groqApiKey && groqApiKey !== 'your_groq_api_key_here') {
     try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        // gemini-pro is DEPRECATED — use gemini-1.5-flash
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-2.0-flash',
-            systemInstruction: SYSTEM_PROMPT,
-            generationConfig: { temperature: 0.3, maxOutputTokens: 150 }
-        });
-        chatSession = model.startChat({ history: [] });
-        console.log('✅ Gemini AI initialized (gemini-1.5-flash)');
+        groq = new Groq({ apiKey: groqApiKey });
+        console.log('✅ Groq AI initialized (llama-3.1-8b-instant)');
     } catch (e) {
-        console.error('❌ AI init failed:', e.message);
+        console.error('❌ Groq init failed:', e.message);
     }
 } else {
-    console.warn('⚠️  No GEMINI_API_KEY found. Add it to your .env file.');
+    console.warn('⚠️  No GROQ_API_KEY found. Add it to your .env file or Render environment variables.');
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.get('/status', (req, res) => res.json({ ai_ready: !!chatSession }));
+app.get('/status', (req, res) => res.json({ ai_ready: !!groq }));
 
 app.post('/api/chat', async (req, res) => {
     const userMsg = (req.body.message || '').trim();
     if (!userMsg) return res.status(400).json({ error: 'Empty message' });
 
-    if (!chatSession) {
-        return res.status(503).json({ error: 'AI not ready — please add your GEMINI_API_KEY to .env' });
+    if (!groq) {
+        return res.status(503).json({ error: 'AI not ready — please add your GROQ_API_KEY to environment variables.' });
     }
 
     try {
-        const result = await chatSession.sendMessage(userMsg);
-        const reply = result.response.text().trim();
+        const completion = await groq.chat.completions.create({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user',   content: userMsg }
+            ],
+            max_tokens: 150,
+            temperature: 0.3
+        });
+
+        const reply = completion.choices[0].message.content.trim();
 
         // Append to log file
         const entry = `User: ${userMsg}\nBot: ${reply}\n\n`;
