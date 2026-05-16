@@ -47,6 +47,11 @@ if (groqApiKey && groqApiKey !== 'your_groq_api_key_here') {
     console.warn('⚠️  No GROQ_API_KEY found. Add it to your .env file or Render environment variables.');
 }
 
+// ── In-memory conversation history (multi-turn memory) ────────────────────────
+// Stores last 10 exchanges per session to avoid token overflow
+const conversationHistory = [];
+const MAX_HISTORY = 10;
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.get('/status', (req, res) => res.json({ ai_ready: !!groq }));
 
@@ -59,17 +64,28 @@ app.post('/api/chat', async (req, res) => {
     }
 
     try {
+        // Add user message to history
+        conversationHistory.push({ role: 'user', content: userMsg });
+
+        // Keep only last MAX_HISTORY messages to avoid token overflow
+        if (conversationHistory.length > MAX_HISTORY * 2) {
+            conversationHistory.splice(0, 2);
+        }
+
         const completion = await groq.chat.completions.create({
             model: 'llama-3.1-8b-instant',
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user',   content: userMsg }
+                ...conversationHistory          // full history for memory
             ],
             max_tokens: 150,
             temperature: 0.3
         });
 
         const reply = completion.choices[0].message.content.trim();
+
+        // Add bot reply to history
+        conversationHistory.push({ role: 'assistant', content: reply });
 
         // Append to log file
         const entry = `User: ${userMsg}\nBot: ${reply}\n\n`;
@@ -107,6 +123,7 @@ app.get('/api/history', (req, res) => {
 
 // Clear history
 app.delete('/api/history', (req, res) => {
+    conversationHistory.length = 0; // also clear in-memory history
     fs.writeFile(LOG_FILE, '', 'utf8', (err) => {
         if (err) return res.status(500).json({ error: 'Failed to clear history' });
         res.json({ success: true });
