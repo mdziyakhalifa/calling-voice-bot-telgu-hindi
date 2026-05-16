@@ -18,17 +18,39 @@ let chatSession = null;
 app.get('/status', (req, res) => res.json({ ai_ready: !!chatSession }));
 
 const apiKey = process.env.GEMINI_API_KEY;
-if (apiKey && apiKey !== 'your_gemini_api_key_here') {
-    try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        // We use gemini-1.5-flash as it is the current standard for Free Tier
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        chatSession = model.startChat({ history: [] });
-    } catch (e) { console.error("AI Error:", e); }
+
+// SELF-HEALING INITIALIZATION
+async function initAI() {
+    if (!apiKey || apiKey === 'your_gemini_api_key_here') return;
+    
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // List of models to try in order of preference
+    const modelsToTry = ["gemini-1.5-flash", "gemini-pro", "gemini-1.0-pro"];
+    
+    for (const modelName of modelsToTry) {
+        try {
+            console.log(`Trying model: ${modelName}...`);
+            const model = genAI.getGenerativeModel({ model: modelName });
+            // Test the model with a tiny message
+            const test = await model.generateContent("hi");
+            if (test.response) {
+                chatSession = model.startChat({ history: [] });
+                console.log(`SUCCESS! Using model: ${modelName}`);
+                return;
+            }
+        } catch (e) {
+            console.warn(`Model ${modelName} failed. Trying next...`);
+        }
+    }
+    console.error("ALL MODELS FAILED. Please check if your API Key is valid at aistudio.google.com");
 }
 
+initAI();
+
 app.post('/api/chat', async (req, res) => {
-    if (!chatSession) return res.status(500).json({ error: "AI not ready" });
+    if (!chatSession) {
+        return res.status(500).json({ error: "AI not initialized. This usually means your API Key is invalid or restricted. Try creating a NEW key at aistudio.google.com" });
+    }
     try {
         const result = await chatSession.sendMessage(req.body.message || "hi");
         res.json({ reply: result.response.text().trim() });
