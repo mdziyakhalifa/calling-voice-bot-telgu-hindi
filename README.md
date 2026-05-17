@@ -11,9 +11,14 @@ Understands and responds in a natural mix of Hindi + Telugu using voice input an
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Live-10b981?style=flat-square)]()
 
-[Live Demo](#) · [Report Bug](../../issues) · [Request Feature](../../issues)
+[Live Demo](https://calling-voice-bot-telgu-hindi.onrender.com/) · [Report Bug](../../issues) · [Request Feature](../../issues)
 
-![Swar AI Screenshot](https://i.imgur.com/placeholder.png)
+![Swar AI Screenshot]<img width="1919" height="913" alt="image" src="https://github.com/user-attachments/assets/92c4d005-fc4a-4142-88a7-4169ea181382" />
+
+<img width="1919" height="912" alt="image" src="https://github.com/user-attachments/assets/03072b8b-47fb-421c-bd86-f000d4fa9647" />
+<img width="1303" height="880" alt="image" src="https://github.com/user-attachments/assets/d1da8121-fa38-43b6-8b64-bace10ece209" />
+
+
 
 </div>
 
